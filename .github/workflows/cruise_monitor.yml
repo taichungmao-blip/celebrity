@@ -2,9 +2,8 @@ name: Celebrity Cruise Price Monitor
 
 on:
   schedule:
-    # 每天 UTC 00:00 執行 (換算台北時間為早上 08:00)
     - cron: '0 0 * * *'
-  workflow_dispatch: # 允許在 GitHub 介面上手動點擊執行
+  workflow_dispatch:
 
 jobs:
   monitor:
@@ -33,3 +32,13 @@ jobs:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         python monitor.py
+
+    # 新增：當上一步驟失敗 (failure) 時，上傳截圖和 HTML
+    - name: 儲存錯誤截圖與 HTML
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-artifacts
+        path: |
+          error_screenshot.png
+          error_page.html
