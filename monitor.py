@@ -2,7 +2,7 @@ import os
 import re
 import requests
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
+from playwright_stealth import Stealth
 
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 TARGET_URL = "https://www.celebritycruises.com/cruises?search=departurePort:HKG,ICN,NRT,SIN,YOK&sort=by:PRICE|order:ASC&country=USA"
@@ -34,11 +34,11 @@ def send_discord_notification(cruise):
         print(f"發送 Discord 通知時發生錯誤: {e}")
 
 def parse_cruises():
-    with sync_playwright() as p:
-        # 開啟瀏覽器
+    # 使用 2.0+ 最新版本的 Stealth 語法來包裹 sync_playwright()
+    with Stealth().use_sync(sync_playwright()) as p:
         browser = p.chromium.launch(headless=True)
         
-        # 模擬正常的 Mac 電腦瀏覽器
+        # 模擬正常的 Mac 電腦瀏覽器特徵
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -53,10 +53,7 @@ def parse_cruises():
         )
         page = context.new_page()
         
-        # 載入隱身腳本，避免被識別為 Playwright
-        stealth_sync(page)
-        
-        print("正在載入名人郵輪網頁 (Stealth Mode)...")
+        print("正在載入名人郵輪網頁 (Stealth 2.0 隱身模式)...")
         
         try:
             page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=60000)
