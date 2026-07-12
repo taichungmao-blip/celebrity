@@ -2,7 +2,6 @@ import os
 import re
 import requests
 from playwright.sync_api import sync_playwright
-from playwright_stealth import Stealth
 
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 TARGET_URL = "https://www.celebritycruises.com/cruises?search=departurePort:HKG,ICN,NRT,SIN,YOK&sort=by:PRICE|order:ASC&country=USA"
@@ -34,30 +33,32 @@ def send_discord_notification(cruise):
         print(f"發送 Discord 通知時發生錯誤: {e}")
 
 def parse_cruises():
-    # 使用 2.0+ 最新版本的 Stealth 語法來包裹 sync_playwright()
-    with Stealth().use_sync(sync_playwright()) as p:
-        browser = p.chromium.launch(headless=True)
+    # 不使用 stealth，改用原生 Firefox 引擎來規避針對 Chrome 的指紋辨識
+    with sync_playwright() as p:
+        print("啟動 Firefox 瀏覽器...")
+        browser = p.firefox.launch(headless=True)
         
-        # 模擬正常的 Mac 電腦瀏覽器特徵
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            # 使用常見的 Mac Firefox User Agent
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
             locale="en-US",
             timezone_id="America/New_York",
             extra_http_headers={
-                "Accept-Language": "en-US,en;q=0.9",
-                "Sec-Ch-Ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
-                "Sec-Ch-Ua-Mobile": "?0",
-                "Sec-Ch-Ua-Platform": "\"macOS\""
+                "Accept-Language": "en-US,en;q=0.5",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1"
             }
         )
         page = context.new_page()
         
-        print("正在載入名人郵輪網頁 (Stealth 2.0 隱身模式)...")
+        print("正在載入名人郵輪網頁 (Firefox)...")
         
         try:
             page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_timeout(8000) # 強制等待 8 秒讓前端與防爬蟲系統運作
+            page.wait_for_timeout(8000) # 強制等待 8 秒
             
             # 等待郵輪卡片載入
             page.wait_for_selector("div[data-testid^='cruise-card-']", timeout=30000)
@@ -83,7 +84,6 @@ def parse_cruises():
                 price_text = price_text_el.inner_text().replace(",", "").strip()
                 price = int(re.search(r'\d+', price_text).group())
                 
-                # 條件：低於 1500 美金
                 if price >= 1500:
                     continue
                 
