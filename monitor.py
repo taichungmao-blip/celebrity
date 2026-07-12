@@ -18,7 +18,7 @@ def send_discord_notification(cruise):
         f"**【出發/目的港】** {cruise['ports_route']}\n"
         f"**【主要行程】** {cruise['itinerary_title']}\n"
         f"**【價格】** ${cruise['price']:,} USD (每人平均)\n"
-        f"**【詳情連結】** https://www.celebritycruises.com{cruise['link']}\n"
+        f"**【詳情連結】** {cruise['full_link']}\n"
         f"----------------------------------------"
     )
     
@@ -33,14 +33,12 @@ def send_discord_notification(cruise):
         print(f"發送 Discord 通知時發生錯誤: {e}")
 
 def parse_cruises():
-    # 不使用 stealth，改用原生 Firefox 引擎來規避針對 Chrome 的指紋辨識
     with sync_playwright() as p:
         print("啟動 Firefox 瀏覽器...")
         browser = p.firefox.launch(headless=True)
         
         context = browser.new_context(
             viewport={'width': 1920, 'height': 1080},
-            # 使用常見的 Mac Firefox User Agent
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
             locale="en-US",
             timezone_id="America/New_York",
@@ -60,7 +58,6 @@ def parse_cruises():
             page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=60000)
             page.wait_for_timeout(8000) # 強制等待 8 秒
             
-            # 等待郵輪卡片載入
             page.wait_for_selector("div[data-testid^='cruise-card-']", timeout=30000)
             
         except Exception as e:
@@ -72,7 +69,6 @@ def parse_cruises():
             browser.close()
             raise e
             
-        # 取得所有郵輪卡片元素
         cards = page.query_selector_all("div[data-testid^='cruise-card-']")
         print(f"共找到 {len(cards)} 個航程卡片。")
         
@@ -90,23 +86,39 @@ def parse_cruises():
                 ship_name_el = card.query_selector("h3[data-testid^='cruise-ship-label-']")
                 ship_name = ship_name_el.inner_text().strip() if ship_name_el else "未知船名"
                 
-                nights_el = card.query_selector("span[class*='Tipper-styled__Tipper-content']")
-                nights = nights_el.inner_text().strip() if nights_el else "未知天數"
-                
                 ports_route = "未知港口資訊"
                 route_el = card.query_selector("div[class*='CruiseCardLocationListBase']")
                 if route_el:
                     ports_route = route_el.inner_text().replace("\n", " ").strip()
                 
-                itinerary_title = "未知行程"
+                # 處理連結並修復 .comitinerary 錯誤
                 link_attr = card.get_attribute("data-product-view-link")
                 link = link_attr if link_attr else ""
+                clean_link = link.lstrip('/') # 確保不會有重複的斜線
+                full_link = f"https://www.celebritycruises.com/{clean_link}" if clean_link else "無連結"
+
+                # 利用正則表達式從網址中精準抽出天數 (例如 itinerary/11-night)
+                nights = "未知天數"
+                night_match = re.search(r'itinerary/(\d+)-night', link, re.IGNORECASE)
+                if night_match:
+                    nights = f"{night_match.group(1)} Nights"
+                else:
+                    nights_el = card.query_selector("span[class*='Tipper-styled__Tipper-content']")
+                    nights = nights_el.inner_text().strip() if nights_el else "未知天數"
                 
+                # 處理主要行程，把裡面夾帶的天數資訊濾掉
+                itinerary_title = "未知行程"
                 title_el = card.query_selector("div[class*='RefinedCruiseCardBase'] >> xpath=../..//h2")
                 if title_el:
                     itinerary_title = title_el.inner_text().strip()
                 elif "itinerary/" in link:
-                    itinerary_title = link.split("itinerary/")[1].split("-from-")[0].replace("-", " ").title()
+                    raw_title = link.split("itinerary/")[1].split("-from-")[0].replace("-", " ").title()
+                    # 把 "11 Night " 從主要行程字串中拿掉
+                    title_match = re.search(r'^\d+\s*Nights?\s+(.*)', raw_title, re.IGNORECASE)
+                    if title_match:
+                        itinerary_title = title_match.group(1).strip()
+                    else:
+                        itinerary_title = raw_title
 
                 cruise_data = {
                     "ship_name": ship_name,
@@ -114,7 +126,7 @@ def parse_cruises():
                     "ports_route": ports_route,
                     "itinerary_title": itinerary_title,
                     "price": price,
-                    "link": link
+                    "full_link": full_link
                 }
                 
                 send_discord_notification(cruise_data)
