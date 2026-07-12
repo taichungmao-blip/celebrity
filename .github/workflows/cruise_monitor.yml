@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
-
+permissions: contents: write
 jobs:
   monitor:
     runs-on: macos-latest
@@ -32,6 +32,15 @@ jobs:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         python monitor.py
+    - name: 將歷史紀錄存回 GitHub
+      run: |
+        # 設定機器人的 Git 身分
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    
+        # 檢查 history.json 是否有更動，如果有則提交並推送
+        git add history.json
+        git diff --quiet && git diff --staged --quiet || (git commit -m "自動更新：紀錄已通知的郵輪價格" && git push)
 
     # 新增：當上一步驟失敗 (failure) 時，上傳截圖和 HTML
     - name: 儲存錯誤截圖與 HTML
