@@ -87,8 +87,8 @@ def parse_cruises():
                 page.wait_for_timeout(15000) 
                 
                 # 等待卡片元素出現
-                page.wait_for_selector("div[data-testid^='cruise-card-']", timeout=30000)
-                cards = page.query_selector_all("div[data-testid^='cruise-card-']")
+                page.wait_for_selector("div[data-group-id]", timeout=30000)
+                cards = page.query_selector_all("div[data-group-id]")
                 print(f"成功載入！共找到 {len(cards)} 個航程卡片。")
                 break # 成功抓到資料，跳出重試迴圈
                 
