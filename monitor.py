@@ -88,7 +88,7 @@ def parse_cruises():
                 
                 # 等待卡片元素出現
                 page.wait_for_selector("div[class*='RefinedCruiseCardstyles__RefinedCruiseCardBase']", timeout=30000)
-                cards = page.query_selector_all("div[class*='RefinedCruiseCardstyles__RefinedCruiseCardBase']"))
+                cards = page.query_selector_all("div[class*='RefinedCruiseCardstyles__RefinedCruiseCardBase']")
                 print(f"成功載入！共找到 {len(cards)} 個航程卡片。")
                 break # 成功抓到資料，跳出重試迴圈
                 
