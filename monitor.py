@@ -4,6 +4,7 @@ import json
 import time
 import requests
 from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync  # 引入套件
 
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 TARGET_URL = "https://www.celebritycruises.com/cruises?search=departurePort:HKG,ICN,NRT,SIN,YOK&sort=by:PRICE|order:ASC&country=USA"
@@ -74,6 +75,9 @@ def parse_cruises():
                 timezone_id="America/New_York"
             )
             page = context.new_page()
+            stealth_sync(page)  # 在載入網頁前，將隱身腳本注入到 page 中
+
+            page.goto(TARGET_URL, wait_until="domcontentloaded", timeout=60000)
             
             # 抹除 WebDriver 特徵，降低被防火牆發現是機器人的機率
             page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
