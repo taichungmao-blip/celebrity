@@ -74,29 +74,30 @@ def analyze_market(move, hy_oas, ig_oas, hyg_curr, hyg_prev, hyg_10d):
         credit_stress = True
     
     # 4. 產出結論
+    # 4. 產出結論
     if rate_stress and not credit_stress:
-        summary = "【利率市場承壓，但信用結構健康】"
+        summary = "🟡 【利率市場承壓，但信用結構健康】"
         detail = (
             "MOVE 指數高於 100，顯示美債市場波動劇烈、利率預期混亂；\n"
             "但信用利差維持在安全水準，且 HYG 無顯著跌幅（未出現急跌或連續緩跌），\n"
             "企業融資未現斷鏈危機。無須因殖利率高而盲目看空。"
         )
-        color = 0xF1C40F  # 黃色
+        color = 0xF1C40F  # 黃色邊線
     elif rate_stress and credit_stress:
-        summary = "【警訊：利率壓力已傳導至信用市場】"
+        summary = "🔴 【警訊：利率壓力已傳導至信用市場】"
         detail = (
             "MOVE 指數偏高，且觀察到企業信用利差顯著擴大，或 HYG 出現拋售（單日大跌或波段緩跌）。\n"
             "顯示資金成本已實質傷及企業融資，股市恐面臨較大回調壓力。"
         )
-        color = 0xE74C3C  # 紅色
+        color = 0xE74C3C  # 紅色邊線
     elif not rate_stress and credit_stress:
-        summary = "【注意：利率平穩但個別信用風險升溫】"
+        summary = "🟠 【注意：利率平穩但個別信用風險升溫】"
         detail = "公債波動不大，但信用利差擴散或 HYG 呈現跌勢，需警惕企業端個別違約或流動性收緊。"
-        color = 0xE67E22  # 橘色
+        color = 0xE67E22  # 橘色邊線
     else:
-        summary = "【市場處於穩定風險溢價區間】"
+        summary = "🟢 【市場處於穩定風險溢價區間】"
         detail = "公債波動度與信用利差均在健康低檔，HYG 價格平穩，無系統性風險訊號。"
-        color = 0x2ECC71  # 綠色
+        color = 0x2ECC71  # 綠色邊線
         
     return summary, detail, color
 
