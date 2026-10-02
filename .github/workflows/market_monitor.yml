@@ -3,7 +3,7 @@ name: Market Risk & Credit Monitor
 on:
   schedule:
     # 每天 UTC 22:00（美股收盤並結算後，約台灣時間早上 06:00 / 冬令 07:00）
-    - cron: '0 22 * * 1-5'
+    - cron: '0 21 * * 1-5'
   workflow_dispatch: # 支援在 GitHub 介面上手動執行
 
 jobs:
